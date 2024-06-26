@@ -2,24 +2,28 @@ package com.project3.quanlynhahang.service.impl;
 
 import com.project3.quanlynhahang.config.ApiException;
 import com.project3.quanlynhahang.dtos.reponse.LoginResponse;
+import com.project3.quanlynhahang.dtos.reponse.OrderItemResponse;
+import com.project3.quanlynhahang.dtos.reponse.OrderResponse;
+import com.project3.quanlynhahang.dtos.reponse.ReportResponse;
 import com.project3.quanlynhahang.dtos.request.*;
-import com.project3.quanlynhahang.entity.Customer;
-import com.project3.quanlynhahang.entity.Employee;
-import com.project3.quanlynhahang.entity.Food;
+import com.project3.quanlynhahang.entity.*;
 import com.project3.quanlynhahang.enums.AccountStatus;
 import com.project3.quanlynhahang.enums.FoodStatus;
 import com.project3.quanlynhahang.enums.Role;
 import com.project3.quanlynhahang.repository.CustomerRepository;
 import com.project3.quanlynhahang.repository.EmployeeRepository;
 import com.project3.quanlynhahang.repository.FoodRepository;
+import com.project3.quanlynhahang.repository.OrderRepository;
 import com.project3.quanlynhahang.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.util.StringUtils;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -39,6 +43,7 @@ public class AdminServiceImpl implements AdminService {
     private final FoodRepository foodRepository;
     private final CustomerRepository customerRepository;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    private final OrderRepository orderRepository;
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -130,7 +135,7 @@ public class AdminServiceImpl implements AdminService {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            createImageFile(request.getImageContent());
+            food.setImage(createImageFile(request.getImageContent()));
         }
         if (Objects.nonNull(request.getCategory())) {
             food.setCategory(request.getCategory());
@@ -215,7 +220,40 @@ public class AdminServiceImpl implements AdminService {
         return "Update customer status successful.";
     }
 
+    @Override
+    public ReportResponse getReport(ReportRequest request) {
+        List<Orders> orders = orderRepository.findOrderReport(request);
+        List<OrderResponse> orderResponses = new ArrayList<>();
+        orders.forEach(t -> {
+            Employee shipper = employeeRepository.findById(t.getShipperId()).orElse(null);
+            Customer customer = customerRepository.findById(t.getCustomerId()).orElse(null);
+            OrderResponse orderItem = OrderResponse.builder()
+                    .orderItems(toOrderItemResponse(t.getOrderItems()))
+                    .total(t.getTotalAmount())
+                    .shipperName(Objects.nonNull(shipper) ? shipper.getFullName() : null)
+                    .shippingStatus(t.getShippingStatus())
+                    .transactionStatus(t.getTransactionStatus())
+                    .ratingPoint(t.getRatingPoint())
+                    .ratingComment(t.getRatingComment())
+                    .createdAt(t.getCreatedAt())
+                    .updatedAt(t.getUpdatedAt())
+                    .customerName(Objects.nonNull(customer) ? customer.getFullName() : null)
+                    .build();
+            orderResponses.add(orderItem);
+        });
+        BigDecimal totalAmount = orderResponses.stream()
+                .map(OrderResponse::getTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
+        return ReportResponse.builder()
+                .totalAmount(totalAmount)
+                .totalOrders(orders.size())
+                .orderResponses(orderResponses)
+                .build();
+    }
+
     private String createImageFile(String fileContent) {
+        if (Objects.isNull(fileContent) || StringUtils.isEmpty(fileContent)) {
+            return null;
+        }
         byte[] image = Base64.getDecoder().decode(fileContent);
         String extension = isValidTypeFile(image);
 
@@ -273,5 +311,22 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
+    private List<OrderItemResponse> toOrderItemResponse(List<OrderItem> orderItems) {
+        List<OrderItemResponse> orderItemResponses = new ArrayList<>();
+        orderItems.forEach(t -> {
+            Food food = t.getFood();
+            OrderItemResponse data = OrderItemResponse.builder()
+                    .id(t.getId())
+                    .quantity(t.getQuantity())
+                    .foodName(food.getName())
+                    .category(food.getCategory())
+                    .description(food.getDescription())
+                    .ingredient(food.getIngredients())
+                    .price(food.getPrice())
+                    .build();
+            orderItemResponses.add(data);
+        });
+        return orderItemResponses;
+    }
 
 }

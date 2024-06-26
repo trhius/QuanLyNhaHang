@@ -19,6 +19,7 @@ public class WebPath {
         String API_ADMIN_EMPLOYEE_PATH = API_ADMIN_BASE_PATH + "/employee";
         String API_ADMIN_CUSTOMER_PATH = API_ADMIN_BASE_PATH + "/customer";
         String API_ADMIN_SUPPLIER_PATH = API_ADMIN_BASE_PATH + "/supplier";
+        String API_ADMIN_REPORT_PATH = API_ADMIN_BASE_PATH + "/report";
     }
 
 }

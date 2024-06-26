@@ -1,6 +1,7 @@
 package com.project3.quanlynhahang.service;
 
 import com.project3.quanlynhahang.dtos.reponse.LoginResponse;
+import com.project3.quanlynhahang.dtos.reponse.ReportResponse;
 import com.project3.quanlynhahang.dtos.request.*;
 import com.project3.quanlynhahang.entity.Employee;
 import com.project3.quanlynhahang.entity.Food;
@@ -27,5 +28,7 @@ public interface AdminService {
     String deleteEmployee(Long employeeId);
 
     String updateCustomerStatus(UpdateStatusRequest request);
+
+    ReportResponse getReport(ReportRequest request);
 
 }

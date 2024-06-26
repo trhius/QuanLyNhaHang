@@ -26,5 +26,6 @@ public class OrderResponse {
     private Instant createdAt;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "UTC")
     private Instant updatedAt;
+    private String customerName;
 
 }
